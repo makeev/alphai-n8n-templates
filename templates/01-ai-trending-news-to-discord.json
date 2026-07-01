@@ -1,0 +1,135 @@
+{
+  "name": "AlphaAI: top market news -> Discord (trending alerts)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## AlphaAI → Discord: top market stories\n\n**What it does:** every 15 min it pulls AlphaAI's *trending* feed (relevance-scored, ticker-linked financial news) and posts the fresh, high-relevance ones (score ≥ 8) to Discord as rich cards — each linking to the article on alphai.io, with AI sentiment, confidence, actionability and likely price impact. One message per run, de-duped across runs.\n\n### Setup (2 steps)\n1. **AlphaAI key** — on the *Get trending* node: Authentication = *Generic Credential Type → Bearer Auth*, create a credential and paste just your key `ak_live_…` (no `Bearer ` prefix — n8n adds it). Free key at alphai.io/account/api-keys.\n2. **Discord** — in your server: *Channel → Edit → Integrations → Webhooks → New Webhook → Copy URL*, then paste it into the *Post to Discord* node's URL field.\n\nActivate the workflow. That's it.",
+        "height": 700,
+        "width": 480
+      },
+      "id": "a1111111-1111-4111-8111-111111111111",
+      "name": "README",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "b2222222-2222-4222-8222-222222222222",
+      "name": "Every 15 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.alphai.io/api/news/trending/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {}
+      },
+      "id": "c3333333-3333-4333-8333-333333333333",
+      "name": "Get trending (AlphaAI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// AlphaAI trending -> Discord rich embeds.\n// One message per run: a header line + up to 10 embed \"cards\", each linking to\n// the article page on alphai.io and showing the enriched sentiment / impact.\n// Dedupes by uid across runs; anything that doesn't fit stays unmarked and\n// posts on the next run. One POST per run -> no Discord rate limit.\n\nfunction slugify(text) {\n  return (text || '').toLowerCase()\n    .replace(/[^\\w\\s-]/g, '')\n    .replace(/\\s+/g, '-')\n    .replace(/-+/g, '-')\n    .trim();\n}\nfunction dateForUrl(iso) {\n  const d = new Date(iso);\n  if (isNaN(d.getTime())) { return ''; }\n  const m = String(d.getUTCMonth() + 1).padStart(2, '0');\n  const day = String(d.getUTCDate()).padStart(2, '0');\n  return `${m}-${day}`;\n}\nfunction trunc(s, n) {\n  s = (s == null ? '' : String(s));\n  return s.length > n ? s.slice(0, n - 1) + '…' : s;\n}\n\nconst SITE = 'https://alphai.io';\nconst COLORS = { positive: 3066993, negative: 15158332, neutral: 9807270 };\n\nconst incoming = $input.all();\nlet articles = [];\nfor (const it of incoming) {\n  const j = it.json;\n  if (Array.isArray(j)) { articles = articles.concat(j); }\n  else if (j && Array.isArray(j.results)) { articles = articles.concat(j.results); }\n  else if (j) { articles.push(j); }\n}\n\nconst store = $getWorkflowStaticData('global');\nstore.postedUids = store.postedUids || [];\nconst seen = new Set(store.postedUids);\n\nconst embeds = [];\nconst postedUids = [];\nlet budget = 0; // approx total chars across embeds (Discord hard cap is 6000)\n\nfor (const a of articles) {\n  if (embeds.length >= 10) { break; }\n  const enr = (a && a.enrichment) || {};\n  const org = (a && a.original) || {};\n  const uid = org.uid;\n  const score = enr.relevance_score || 0;\n  const tickers = enr.tickers || [];\n  if (!uid || seen.has(uid)) { continue; }\n  if (score < 8 || tickers.length === 0) { continue; }\n\n  const insights = enr.ai_trading_insights || {};\n  const ta = (insights.ticker_analysis || [])[0] || {};\n  const ia = ta.impact_analysis || {};\n  const ntv = insights.news_trading_value || {};\n  const sentiment = ia.sentiment || 'neutral';\n\n  const url = `${SITE}/news/article/${dateForUrl(org.time_published)}/${uid}/${slugify(org.title)}`;\n\n  const fields = [];\n  if (ia.sentiment) { fields.push({ name: 'Sentiment', value: trunc(ia.sentiment, 60), inline: true }); }\n  if (ia.confidence) { fields.push({ name: 'Confidence', value: trunc(ia.confidence, 60), inline: true }); }\n  if (ntv.actionability_score) { fields.push({ name: 'Actionability', value: trunc(ntv.actionability_score, 60), inline: true }); }\n  if (ia.price_impact_prediction) { fields.push({ name: 'Likely price impact', value: trunc(ia.price_impact_prediction, 300), inline: false }); }\n\n  const embed = {\n    title: trunc(`[${score}] ${tickers.join(', ')} — ${org.title || ''}`, 250),\n    url,\n    description: trunc(org.summary || ia.summary || '', 300),\n    color: COLORS[sentiment] || COLORS.neutral,\n    fields,\n    footer: { text: trunc(`${enr.category || 'news'} · ${org.source || org.source_domain || 'source'} · via AlphaAI`, 120) },\n  };\n  if (org.time_published) { embed.timestamp = org.time_published; }\n\n  const size = JSON.stringify(embed).length;\n  if (budget + size > 5200 && embeds.length > 0) { break; }\n  budget += size;\n\n  embeds.push(embed);\n  postedUids.push(uid);\n  seen.add(uid);\n}\n\nif (embeds.length === 0) { return []; }\n\nfor (const uid of postedUids) { store.postedUids.push(uid); }\nif (store.postedUids.length > 500) { store.postedUids = store.postedUids.slice(-500); }\n\nconst n = embeds.length;\nconst content = `📈 **AlphaAI — ${n} new top ${n === 1 ? 'story' : 'stories'}**`;\n\nreturn [{ json: { payload: { content, embeds } } }];\n"
+      },
+      "id": "d4444444-4444-4444-8444-444444444444",
+      "name": "Build Discord cards",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/REPLACE_WITH_YOUR_WEBHOOK_URL",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.payload }}",
+        "options": {}
+      },
+      "id": "e5555555-5555-4555-8555-555555555555",
+      "name": "Post to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Every 15 min": {
+      "main": [
+        [
+          {
+            "node": "Get trending (AlphaAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get trending (AlphaAI)": {
+      "main": [
+        [
+          {
+            "node": "Build Discord cards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Discord cards": {
+      "main": [
+        [
+          {
+            "node": "Post to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
