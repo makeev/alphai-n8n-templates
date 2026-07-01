@@ -6,6 +6,8 @@ relevance-scored, ticker-linked financial news into alerts, digests and automati
 
 [Website](https://alphai.io) · [API docs](https://alphai.io/developers) · [OpenAPI spec](https://api.alphai.io/api/schema/) · [MCP server](https://alphai.io/mcp)
 
+![AlphaAI trending news alerts in Discord](screenshots/01-trending-discord.png)
+
 ---
 
 ## What is AlphaAI?
@@ -95,8 +97,13 @@ holding, ticker, score, and a link to the filing. De-duplicated across runs. Tun
 
 ## Screenshots
 
-Drop PNGs into [`screenshots/`](screenshots/) — e.g. the Discord alert feed and the
-email digest.
+**Daily watchlist digest (email):**
+
+![Daily watchlist digest email](screenshots/02-watchlist-email.png)
+
+**Insider (SEC Form 4) alerts (Discord):**
+
+![Insider Form 4 alerts in Discord](screenshots/03-insider-discord.png)
 
 ## Links
 
