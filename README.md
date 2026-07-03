@@ -25,6 +25,7 @@ pre-scored and ticker-linked.
 
 | # | Template | What it does | Delivery |
 |---|----------|--------------|----------|
+| **04** | [AI morning market briefing](templates/04-ai-morning-market-briefing.json) | Pre-open brief for your watchlist — news, sentiment & insider data, written by your own AI model, with deterministic red-flag alerts | Email + Discord |
 | **01** | [Trending news alerts](templates/01-ai-trending-news-to-discord.json) | Fresh top market stories (relevance ≥ 8) as rich cards | Discord |
 | **02** | [Watchlist daily digest](templates/02-watchlist-daily-digest-email.json) | One daily email of your tickers' high-relevance news | Email |
 | **03** | [Insider (SEC Form 4) alerts](templates/03-insider-form4-to-discord.json) | Material insider buys/sells, colour-coded | Discord |
@@ -44,6 +45,26 @@ Every alert links back to the **full analysis on alphai.io**.
 ---
 
 ## Template details
+
+### 04 — AI morning market briefing → email + Discord (flagship)
+
+`Schedule (weekdays 07:00)` → `Watchlist & settings` → 4 parallel AlphaAI branches
+(per-ticker news · 7-day sentiment · 30-day Form 4 insider summary · market trending)
+→ `Merge` → `Assemble` → `LLM chain (any chat model)` → `Render` → `Email` + `IF red
+flags → Discord`
+
+Every weekday before the open, builds a personal market brief for your watchlist and
+emails it as clean HTML. Deterministic code decides the **red flags** (bearish
+score ≥ 8 news or a notable insider filing in the last 24h) — the AI model only
+writes the narrative, so it cannot invent alerts; urgent flags also ping a Discord
+channel immediately, and the email subject flips to 🚩.
+
+![AI morning market briefing canvas](screenshots/04-morning-briefing.png)
+
+**Setup:** Bearer Auth credential (one, shared by the four AlphaAI nodes), an OpenAI
+credential on the model node (or swap it for Anthropic/Gemini — the chain doesn't
+care), SMTP on the email node, and optionally a Discord webhook. Up to **6 tickers
+fits the Free tier** (≤ 19 calls/run).
 
 ### 01 — Trending news → Discord
 
