@@ -1,19 +1,67 @@
 {
-  "name": "AlphaAI: daily watchlist news digest -> email",
+  "name": "Send daily watchlist news digests by email using AlphaAI",
   "nodes": [
     {
       "parameters": {
-        "content": "## AlphaAI → daily watchlist digest (email)\n\n**What it does:** once a day it fetches high-relevance news (score ≥ 7) for each ticker on your watchlist and emails you one clean HTML digest — grouped by ticker, each item linking to the full analysis on alphai.io, with AI sentiment and category. De-duped across days.\n\n### Setup (3 steps)\n1. **Watchlist** — open the *Watchlist* node and edit the `tickers` array (US `AAPL`, crypto `BTC-USD`, foreign `VOD.L`).\n2. **AlphaAI key** — on *Get ticker news*: Authentication = *Generic Credential Type → Bearer Auth*, paste just your key `ak_live_…` (no `Bearer ` prefix). Free key at alphai.io/account/api-keys.\n3. **Email** — on *Send digest email*: create an **SMTP** credential (your mail provider, or Gmail with an app password), then set *From* and *To*.\n\nTip: to preview without sending, click *Get ticker news* → *Build digest email* and inspect the HTML output before wiring SMTP. Then Activate.",
-        "height": 640,
-        "width": 480
+        "content": "## Send daily watchlist news digests by email using AlphaAI\n\n### How it works\n\n1. A Schedule Trigger runs the workflow once a day at 8am.\n2. A Code node defines the watchlist and emits one item per ticker.\n3. An HTTP Request node fetches high relevance news (score 7 or higher) for each ticker from the AlphaAI news API, with sentiment and category already attached.\n4. A Code node dedupes across days, groups articles by ticker and builds one clean HTML digest linking every item to the full analysis on alphai.io.\n5. An email node sends the digest over SMTP.\n\n### Setup steps\n\n- [ ] Create a free AlphaAI API key at alphai.io (Account, API keys).\n- [ ] On the \"Fetch Ticker News\" node, add a Bearer Auth credential and paste the key without the \"Bearer \" prefix.\n- [ ] Edit the tickers array in the \"Define Watchlist Tickers\" node.\n- [ ] On the \"Send Digest Email\" node, create an SMTP credential and set the from and to addresses.\n- [ ] Activate the workflow.\n\n### Customization\n\nChange the schedule time, the tickers or the relevance floor. To preview without sending, execute \"Build Digest Email\" and inspect its HTML output.",
+        "width": 480,
+        "height": 848
       },
-      "id": "a0000000-0000-4000-8000-0000000000a2",
-      "name": "README",
+      "id": "acc00db7-f46d-4171-ae71-23b551b2b189",
+      "name": "Sticky Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -380,
-        -60
+        -464,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Set schedule and watchlist\n\nRuns once a day and defines the tickers to digest. US tickers are bare, crypto uses BTC-USD, foreign uses the Yahoo suffix.",
+        "width": 416,
+        "height": 368,
+        "color": 7
+      },
+      "id": "2afac1ea-3142-42f1-9cd5-d0a2dfe8d6fe",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        96,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Fetch ticker news\n\nCalls the AlphaAI news API once per ticker and returns scored articles with sentiment and category attached.",
+        "width": 240,
+        "height": 368,
+        "color": 7
+      },
+      "id": "8e8b09a9-fdfd-4936-8faa-408c8b27836d",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        544,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Build and send the digest\n\nDedupes across days, groups articles by ticker and emails one clean HTML digest over SMTP.",
+        "width": 416,
+        "height": 368,
+        "color": 7
+      },
+      "id": "1ef8dca7-9da2-40ef-9079-f76c084b4a3e",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        816,
+        -208
       ]
     },
     {
@@ -29,7 +77,7 @@
         }
       },
       "id": "b0000000-0000-4000-8000-0000000000b2",
-      "name": "Every day 08:00",
+      "name": "Every Day at 8am",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -43,11 +91,11 @@
         "jsCode": "// ▼▼▼ EDIT YOUR WATCHLIST HERE ▼▼▼\n// US tickers are bare (AAPL), crypto is <SYM>-USD (BTC-USD), foreign uses the\n// Yahoo suffix (VOD.L, 7203.T). One AlphaAI call is made per ticker.\nconst tickers = ['NVDA', 'AAPL', 'TSLA', 'MSFT', 'AMD'];\n// ▲▲▲ EDIT YOUR WATCHLIST HERE ▲▲▲\nreturn tickers.map(t => ({ json: { ticker: String(t).trim() } }));\n"
       },
       "id": "c0000000-0000-4000-8000-0000000000c2",
-      "name": "Watchlist",
+      "name": "Define Watchlist Tickers",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        340,
+        360,
         0
       ]
     },
@@ -72,25 +120,25 @@
         "options": {}
       },
       "id": "d0000000-0000-4000-8000-0000000000d2",
-      "name": "Get ticker news",
+      "name": "Fetch Ticker News",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        560,
+        600,
         0
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Build one HTML digest email from the per-ticker AlphaAI responses.\n// Zips each HTTP response back to its ticker by index (n8n preserves order),\n// keeps score≥7 news from the last WINDOW_H hours, dedupes by uid across days.\n\nfunction slugify(text) {\n  return (text || '').toLowerCase()\n    .replace(/[^\\w\\s-]/g, '').replace(/\\s+/g, '-').replace(/-+/g, '-').trim();\n}\nfunction dateForUrl(iso) {\n  const d = new Date(iso);\n  if (isNaN(d.getTime())) { return ''; }\n  return String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');\n}\nfunction trunc(s, n) { s = (s == null ? '' : String(s)); return s.length > n ? s.slice(0, n - 1) + '…' : s; }\nfunction esc(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }\n\nconst SITE = 'https://alphai.io';\nconst WINDOW_H = 30;       // look-back window (a little over a day so nothing is missed)\nconst MAX_PER_TICKER = 5;\n\nconst responses = $input.all();\nconst wl = $('Watchlist').all();\n\nconst store = $getWorkflowStaticData('global');\nstore.sentUids = store.sentUids || [];\nconst seen = new Set(store.sentUids);\n\nconst now = Date.now();\nconst cutoff = now - WINDOW_H * 3600 * 1000;\nconst sections = [];\nconst newlySent = [];\n\nfor (let i = 0; i < responses.length; i++) {\n  const ticker = (wl[i] && wl[i].json && wl[i].json.ticker) || '';\n  const body = (responses[i] && responses[i].json) || {};\n  const results = Array.isArray(body) ? body : (body.results || []);\n  const rows = [];\n  for (const a of results) {\n    if (rows.length >= MAX_PER_TICKER) { break; }\n    const org = a.original || {};\n    const enr = a.enrichment || {};\n    const uid = org.uid;\n    if (!uid || seen.has(uid)) { continue; }\n    const t = new Date(org.time_published || 0).getTime();\n    if (isNaN(t) || t < cutoff) { continue; }\n    const insights = enr.ai_trading_insights || {};\n    const ia = ((insights.ticker_analysis || [])[0] || {}).impact_analysis || {};\n    const sentiment = ia.sentiment || 'neutral';\n    const color = sentiment === 'positive' ? '#1e9e5a' : sentiment === 'negative' ? '#d64541' : '#7a7a7a';\n    const url = SITE + '/news/article/' + dateForUrl(org.time_published) + '/' + uid + '/' + slugify(org.title);\n    const summary = esc(trunc(org.summary || ia.summary || '', 220));\n    rows.push(\n      '<tr><td style=\"padding:10px 0;border-bottom:1px solid #eee\">' +\n      '<a href=\"' + url + '\" style=\"color:#0b6b3a;font-weight:600;text-decoration:none;font-size:15px\">' +\n      '[' + (enr.relevance_score || 0) + '] ' + esc(trunc(org.title || '', 140)) + '</a><br>' +\n      '<span style=\"font-size:12px;color:#666\"><b style=\"color:' + color + '\">' + esc(sentiment) + '</b>' +\n      ' · ' + esc(enr.category || 'news') + ' · ' + esc(org.source || org.source_domain || '') + '</span><br>' +\n      '<span style=\"font-size:13px;color:#333\">' + summary + '</span></td></tr>'\n    );\n    seen.add(uid);\n    newlySent.push(uid);\n  }\n  if (rows.length === 0) { continue; }\n  sections.push(\n    '<h2 style=\"font-family:Arial,sans-serif;font-size:17px;margin:22px 0 4px;color:#111\">' + esc(ticker) + '</h2>' +\n    '<table style=\"width:100%;border-collapse:collapse\">' + rows.join('') + '</table>'\n  );\n}\n\nif (sections.length === 0) { return []; }\n\nfor (const u of newlySent) { store.sentUids.push(u); }\nif (store.sentUids.length > 1000) { store.sentUids = store.sentUids.slice(-1000); }\n\nconst html =\n  '<div style=\"max-width:640px;margin:0 auto;font-family:Arial,sans-serif;color:#111;padding:8px 4px\">' +\n  '<h1 style=\"font-size:20px;margin:0 0 2px\">📈 AlphaAI watchlist digest</h1>' +\n  '<p style=\"color:#666;font-size:13px;margin:0 0 6px\">High-relevance news (score ≥ 7) from the last ' +\n  WINDOW_H + 'h for your watchlist.</p>' +\n  sections.join('') +\n  '<p style=\"margin-top:26px;font-size:12px;color:#999\">Powered by ' +\n  '<a href=\"' + SITE + '\" style=\"color:#0b6b3a\">AlphaAI</a> — relevance-scored, ticker-linked financial news</p>' +\n  '</div>';\n\nconst subject = 'AlphaAI watchlist — ' + sections.length + ' ticker' + (sections.length === 1 ? '' : 's') + ' with news today';\n\nreturn [{ json: { html, subject } }];\n"
+        "jsCode": "// Build one HTML digest email from the per-ticker AlphaAI responses.\n// Zips each HTTP response back to its ticker by index (n8n preserves order),\n// keeps score≥7 news from the last WINDOW_H hours, dedupes by uid across days.\n\nfunction slugify(text) {\n  return (text || '').toLowerCase()\n    .replace(/[^\\w\\s-]/g, '').replace(/\\s+/g, '-').replace(/-+/g, '-').trim();\n}\nfunction dateForUrl(iso) {\n  const d = new Date(iso);\n  if (isNaN(d.getTime())) { return ''; }\n  return String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');\n}\nfunction trunc(s, n) { s = (s == null ? '' : String(s)); return s.length > n ? s.slice(0, n - 1) + '…' : s; }\nfunction esc(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }\n\nconst SITE = 'https://alphai.io';\nconst WINDOW_H = 30;       // look-back window (a little over a day so nothing is missed)\nconst MAX_PER_TICKER = 5;\n\nconst responses = $input.all();\nconst wl = $('Define Watchlist Tickers').all();\n\nconst store = $getWorkflowStaticData('global');\nstore.sentUids = store.sentUids || [];\nconst seen = new Set(store.sentUids);\n\nconst now = Date.now();\nconst cutoff = now - WINDOW_H * 3600 * 1000;\nconst sections = [];\nconst newlySent = [];\n\nfor (let i = 0; i < responses.length; i++) {\n  const ticker = (wl[i] && wl[i].json && wl[i].json.ticker) || '';\n  const body = (responses[i] && responses[i].json) || {};\n  const results = Array.isArray(body) ? body : (body.results || []);\n  const rows = [];\n  for (const a of results) {\n    if (rows.length >= MAX_PER_TICKER) { break; }\n    const org = a.original || {};\n    const enr = a.enrichment || {};\n    const uid = org.uid;\n    if (!uid || seen.has(uid)) { continue; }\n    const t = new Date(org.time_published || 0).getTime();\n    if (isNaN(t) || t < cutoff) { continue; }\n    const insights = enr.ai_trading_insights || {};\n    const ia = ((insights.ticker_analysis || [])[0] || {}).impact_analysis || {};\n    const sentiment = ia.sentiment || 'neutral';\n    const color = sentiment === 'positive' ? '#1e9e5a' : sentiment === 'negative' ? '#d64541' : '#7a7a7a';\n    const url = SITE + '/news/article/' + dateForUrl(org.time_published) + '/' + uid + '/' + slugify(org.title);\n    const summary = esc(trunc(org.summary || ia.summary || '', 220));\n    rows.push(\n      '<tr><td style=\"padding:10px 0;border-bottom:1px solid #eee\">' +\n      '<a href=\"' + url + '\" style=\"color:#0b6b3a;font-weight:600;text-decoration:none;font-size:15px\">' +\n      '[' + (enr.relevance_score || 0) + '] ' + esc(trunc(org.title || '', 140)) + '</a><br>' +\n      '<span style=\"font-size:12px;color:#666\"><b style=\"color:' + color + '\">' + esc(sentiment) + '</b>' +\n      ' · ' + esc(enr.category || 'news') + ' · ' + esc(org.source || org.source_domain || '') + '</span><br>' +\n      '<span style=\"font-size:13px;color:#333\">' + summary + '</span></td></tr>'\n    );\n    seen.add(uid);\n    newlySent.push(uid);\n  }\n  if (rows.length === 0) { continue; }\n  sections.push(\n    '<h2 style=\"font-family:Arial,sans-serif;font-size:17px;margin:22px 0 4px;color:#111\">' + esc(ticker) + '</h2>' +\n    '<table style=\"width:100%;border-collapse:collapse\">' + rows.join('') + '</table>'\n  );\n}\n\nif (sections.length === 0) { return []; }\n\nfor (const u of newlySent) { store.sentUids.push(u); }\nif (store.sentUids.length > 1000) { store.sentUids = store.sentUids.slice(-1000); }\n\nconst html =\n  '<div style=\"max-width:640px;margin:0 auto;font-family:Arial,sans-serif;color:#111;padding:8px 4px\">' +\n  '<h1 style=\"font-size:20px;margin:0 0 2px\">📈 AlphaAI watchlist digest</h1>' +\n  '<p style=\"color:#666;font-size:13px;margin:0 0 6px\">High-relevance news (score ≥ 7) from the last ' +\n  WINDOW_H + 'h for your watchlist.</p>' +\n  sections.join('') +\n  '<p style=\"margin-top:26px;font-size:12px;color:#999\">Powered by ' +\n  '<a href=\"' + SITE + '\" style=\"color:#0b6b3a\">AlphaAI</a> — relevance-scored, ticker-linked financial news</p>' +\n  '</div>';\n\nconst subject = 'AlphaAI watchlist — ' + sections.length + ' ticker' + (sections.length === 1 ? '' : 's') + ' with news today';\n\nreturn [{ json: { html, subject } }];\n"
       },
       "id": "e0000000-0000-4000-8000-0000000000e2",
-      "name": "Build digest email",
+      "name": "Build Digest Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        780,
+        860,
         0
       ]
     },
@@ -104,54 +152,54 @@
         "options": {}
       },
       "id": "f0000000-0000-4000-8000-0000000000f2",
-      "name": "Send digest email",
+      "name": "Send Digest Email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        1000,
+        1080,
         0
       ]
     }
   ],
   "connections": {
-    "Every day 08:00": {
+    "Every Day at 8am": {
       "main": [
         [
           {
-            "node": "Watchlist",
+            "node": "Define Watchlist Tickers",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Watchlist": {
+    "Define Watchlist Tickers": {
       "main": [
         [
           {
-            "node": "Get ticker news",
+            "node": "Fetch Ticker News",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get ticker news": {
+    "Fetch Ticker News": {
       "main": [
         [
           {
-            "node": "Build digest email",
+            "node": "Build Digest Email",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build digest email": {
+    "Build Digest Email": {
       "main": [
         [
           {
-            "node": "Send digest email",
+            "node": "Send Digest Email",
             "type": "main",
             "index": 0
           }

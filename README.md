@@ -48,7 +48,7 @@ Every alert links back to the **full analysis on alphai.io**.
 
 ### 04 — AI morning market briefing → email + Discord (flagship)
 
-`Schedule (weekdays 07:00)` → `Watchlist & settings` → 4 parallel AlphaAI branches
+`Schedule (weekdays 07:00)` → `Set Watchlist and Settings` → 4 parallel AlphaAI branches
 (per-ticker news · 7-day sentiment · 30-day Form 4 insider summary · market trending)
 → `Merge` → `Assemble` → `LLM chain (any chat model)` → `Render` → `Email` + `IF red
 flags → Discord`
@@ -80,15 +80,15 @@ sentiment, with the title linking to the full analysis.
 
 ### 02 — Watchlist daily digest → email
 
-`Schedule (daily)` → `Watchlist` → `GET /api/news/?symbol=…&min_relevance=7` → `Build digest` → `Send Email`
+`Schedule (daily)` → `Define Watchlist Tickers` → `GET /api/news/?symbol=…&min_relevance=7` → `Build Digest Email` → `Send Digest Email`
 
 Once a day, fetches the high-relevance news (score ≥ 7) for each ticker on your
 watchlist and emails one clean HTML digest, grouped by ticker, each item linking to
 the article on alphai.io. De-duplicated across days.
 
-**Setup:** edit the `tickers` array in the *Watchlist* node, add a Bearer Auth
-credential, and create an **SMTP** credential on the email node (any provider; Gmail
-works with an app password). Tip: run up to *Build digest email* to preview the HTML
+**Setup:** edit the `tickers` array in the *Define Watchlist Tickers* node, add a Bearer
+Auth credential, and create an **SMTP** credential on the email node (any provider; Gmail
+works with an app password). Tip: run up to *Build Digest Email* to preview the HTML
 before wiring SMTP.
 
 ### 03 — Insider (SEC Form 4) alerts → Discord
