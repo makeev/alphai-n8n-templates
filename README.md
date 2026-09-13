@@ -1,18 +1,18 @@
-# AlphaAI × n8n templates
+# AlphAI × n8n templates
 
-Ready-to-import [n8n](https://n8n.io) workflows that turn [AlphaAI](https://alphai.io)'s
+Ready-to-import [n8n](https://n8n.io) workflows that turn [AlphAI](https://alphai.io)'s
 relevance-scored, ticker-linked financial news into alerts, digests and automations —
 **no code**.
 
 [Website](https://alphai.io) · [API docs](https://alphai.io/developers) · [OpenAPI spec](https://api.alphai.io/api/schema/) · [MCP server](https://alphai.io/mcp)
 
-![AlphaAI trending news alerts in Discord](screenshots/01-trending-discord.png)
+![AlphAI trending news alerts in Discord](screenshots/01-trending-discord.png)
 
 ---
 
-## What is AlphaAI?
+## What is AlphAI?
 
-AlphaAI is a financial-news **API + MCP server**. Every article is enriched with
+AlphAI is a financial-news **API + MCP server**. Every article is enriched with
 per-ticker analysis, a category, an AI **sentiment**, and a **1–10 relevance score** —
 so you skip the "fetch raw news, then classify it with an LLM" step. The feed arrives
 pre-scored and ticker-linked.
@@ -36,7 +36,7 @@ Every alert links back to the **full analysis on alphai.io**.
 
 1. Grab a free API key → [alphai.io/account/api-keys](https://alphai.io/account/api-keys).
 2. In n8n: **⋮ → Import from File** → pick a JSON from [`templates/`](templates/).
-3. On the AlphaAI HTTP node, set **Authentication → Generic Credential Type →
+3. On the AlphAI HTTP node, set **Authentication → Generic Credential Type →
    Bearer Auth**, and paste **just** your key `ak_live_…` (no `Bearer ` prefix — n8n
    adds it). No secret is stored in the workflow itself.
 4. Configure the delivery node (Discord webhook URL, or SMTP for email).
@@ -48,7 +48,7 @@ Every alert links back to the **full analysis on alphai.io**.
 
 ### 04 — AI morning market briefing → email + Discord (flagship)
 
-`Schedule (weekdays 07:00)` → `Set Watchlist and Settings` → 4 parallel AlphaAI branches
+`Schedule (weekdays 07:00)` → `Set Watchlist and Settings` → 4 parallel AlphAI branches
 (per-ticker news · 7-day sentiment · 30-day Form 4 insider summary · market trending)
 → `Merge` → `Assemble` → `LLM chain (any chat model)` → `Render` → `Email` + `IF red
 flags → Discord`
@@ -61,7 +61,7 @@ channel immediately, and the email subject flips to 🚩.
 
 ![AI morning market briefing canvas](screenshots/04-morning-briefing.png)
 
-**Setup:** Bearer Auth credential (one, shared by the four AlphaAI nodes), an OpenAI
+**Setup:** Bearer Auth credential (one, shared by the four AlphAI nodes), an OpenAI
 credential on the model node (or swap it for Anthropic/Gemini — the chain doesn't
 care), SMTP on the email node, and optionally a Discord webhook. Up to **6 tickers
 fits the Free tier** (≤ 19 calls/run).
